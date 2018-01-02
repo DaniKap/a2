@@ -1,5 +1,10 @@
 package bgu.spl.a2;
 
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.ConcurrentModificationException;
+import java.util.Iterator;
 import java.util.Map;
 
 /**
@@ -14,80 +19,141 @@ import java.util.Map;
  */
 public class ActorThreadPool {
 
-	/**
-	 * creates a {@link ActorThreadPool} which has nthreads. Note, threads
-	 * should not get started until calling to the {@link #start()} method.
-	 *
-	 * Implementors note: you may not add other constructors to this class nor
-	 * you allowed to add any other parameter to this constructor - changing
-	 * this may cause automatic tests to fail..
-	 *
-	 * @param nthreads
-	 *            the number of threads that should be started by this thread
-	 *            pool
-	 */
-	public ActorThreadPool(int nthreads) {
-		// TODO: replace method body with real implementation
-		throw new UnsupportedOperationException("Not Implemented Yet.");
-	}
-
-	/**
-	 * getter for actors
-	 * @return actors
-	 */
-	public Map<String, PrivateState> getActors(){
-		// TODO: replace method body with real implementation
-		throw new UnsupportedOperationException("Not Implemented Yet.");
-	}
+	private Thread[] threads;
 	
-	/**
-	 * getter for actor's private state
-	 * @param actorId actor's id
-	 * @return actor's private state
-	 */
+	private ConcurrentHashMap<String, PrivateState> actorTable;
+	
+	private ConcurrentHashMap<String, ConcurrentLinkedQueue<Action<?>>> actorQueues;
+	
+	private ConcurrentHashMap<String, AtomicBoolean> actorLocks;
+	
+			/**
+			 * creates a {@link ActorThreadPool} which has nthreads. Note, threads
+			 * should not get started until calling to the {@link #start()} method.
+			 *
+			 * Implementors note: you may not add other constructors to this class nor
+			 * you allowed to add any other parameter to this constructor - changing
+			 * this may cause automatic tests to fail..
+			 *
+			 * @param nthreads
+			 *            the number of threads that should be started by this thread
+			 *            pool
+			 */
+	public ActorThreadPool(int nthreads) {
+		// Initialize all the hashMaps
+		Thread[] threads = new Thread[nthreads];
+		actorTable = new ConcurrentHashMap<String, PrivateState>();
+		actorQueues = new ConcurrentHashMap<String, ConcurrentLinkedQueue<Action<?>>>();
+		actorLocks = new ConcurrentHashMap<String, AtomicBoolean>();
+		
+		// Initialize the threads with run function
+		for (int i = 0 ; i < nthreads ; i++)
+		{
+			threads[i] = new Thread(()->
+				{
+					while(true)
+					{
+						try
+						{
+							for (ConcurrentHashMap.Entry<String, AtomicBoolean> entry : actorLocks.entrySet())
+							{
+								String id = entry.getKey();
+								if (entry.getValue().compareAndSet(false, true))
+								{
+									Action<?> action = actorQueues.get(id).poll();
+									if (action != null)
+									{
+										action.handle(this, id, actorTable.get(id));
+									}
+									actorLocks.get(id).set(false);
+								}
+							}
+						}
+						catch (ConcurrentModificationException e)
+						{
+							continue;
+						}
+					}
+				}
+		}
+	}
+
+			/**
+			 * getter for actors
+			 * @return actors
+			 * 
+			 * This method must be synchronized so the state of the table does not change
+			 * in the middle of the call
+			 */
+	public Map<String, PrivateState> getActors(){
+		return actorTable;
+	}
+		
+			/**
+			 * getter for actor's private state
+			 * @param actorId actor's id
+			 * @return actor's private state
+			 * actorTable must be locked so it doesn't change during getting
+			 * actor must also be locked so while getting it it won't be changed
+			 */
 	public PrivateState getPrivateState(String actorId){
-		// TODO: replace method body with real implementation
-		throw new UnsupportedOperationException("Not Implemented Yet.");
+		
+		return actorTable.get(actorId);
 	}
 
 
-	/**
-	 * submits an action into an actor to be executed by a thread belongs to
-	 * this thread pool
-	 *
-	 * @param action
-	 *            the action to execute
-	 * @param actorId
-	 *            corresponding actor's id
-	 * @param actorState
-	 *            actor's private state (actor's information)
-	 */
-	public void submit(Action<?> action, String actorId, PrivateState actorState) {
-		// TODO: replace method body with real implementation
-		throw new UnsupportedOperationException("Not Implemented Yet.");
+			/**
+			 * submits an action into an actor to be executed by a thread belongs to
+			 * this thread pool
+			 *
+			 * @param action
+			 *            the action to execute
+			 * @param actorId
+			 *            corresponding actor's id
+			 * @param actorState
+			 *            actor's private state (actor's information)
+			 */
+	public void submit(Action<?> action, String actorId, PrivateState actorState){
+		// if actor is absent
+		actorLocks.putIfAbsent(actorId, new AtomicBoolean(false));
+		actorTable.putIfAbsent(actorId, actorState);
+		actorQueues.putIfAbsent(actorId, new ConcurrentLinkedQueue<Action<?>>());
+		
+		// If actor is free
+		if (actorLocks.get(actorId).compareAndSet(false, true))
+		{
+			actorQueues.get(actorId).add(action);
+			actorLocks.get(actorId).set(false);
+		}
 	}
 
-	/**
-	 * closes the thread pool - this method interrupts all the threads and waits
-	 * for them to stop - it is returns *only* when there are no live threads in
-	 * the queue.
-	 *
-	 * after calling this method - one should not use the queue anymore.
-	 *
-	 * @throws InterruptedException
-	 *             if the thread that shut down the threads is interrupted
-	 */
+			/**
+			 * closes the thread pool - this method interrupts all the threads and waits
+			 * for them to stop - it is returns *only* when there are no live threads in
+			 * the queue.
+			 *
+			 * after calling this method - one should not use the queue anymore.
+			 *
+			 * @throws InterruptedException
+			 *             if the thread that shut down the threads is interrupted
+			 */
 	public void shutdown() throws InterruptedException {
-		// TODO: replace method body with real implementation
-		throw new UnsupportedOperationException("Not Implemented Yet.");
+		
+		for (int i = 0 ; i < threads.length ; i++)
+		{
+			threads[i].interrupt();
+			threads[i].join();
+		}
 	}
 
 	/**
 	 * start the threads belongs to this thread pool
 	 */
 	public void start() {
-		// TODO: replace method body with real implementation
-		throw new UnsupportedOperationException("Not Implemented Yet.");
+		for (int i = 0 ; i < threads.length ; i++)
+		{
+			threads[i].start();
+		}
 	}
-
+	 
 }

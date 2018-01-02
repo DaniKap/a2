@@ -1,4 +1,6 @@
 package bgu.spl.a2;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Queue;
 
 /**
  * this class represents a deferred result i.e., an object that eventually will
@@ -17,64 +19,93 @@ package bgu.spl.a2;
  */
 public class Promise<T>{
 
-	/**
-	 *
-	 * @return the resolved value if such exists (i.e., if this object has been
-	 *         {@link #resolve(java.lang.Object)}ed 
-	 * @throws IllegalStateException
-	 *             in the case where this method is called and this object is
-	 *             not yet resolved
-	 */
+	
+	private T result = null;
+	
+	private AtomicBoolean resolved;
+	
+	private Queue<callback> callbacks;
+	
+		/**
+		 *
+		 * @return 
+		 * @return the resolved value if such exists (i.e., if this object has been
+		 *         {@link #resolve(java.lang.Object)}ed 
+		 * @throws IllegalStateException
+		 *             in the case where this method is called and this object is
+		 *             not yet resolved
+		 */
 	public T get() {
-		//TODO: replace method body with real implementation
-		throw new UnsupportedOperationException("Not Implemented Yet.");
+		if (isResolved())
+		{
+			return result;
+		}
+		throw new IllegalStateException("Object has'nt resloved yet.");
 	}
 
-	/**
-	 *
-	 * @return true if this object has been resolved - i.e., if the method
-	 *         {@link #resolve(java.lang.Object)} has been called on this object
-	 *         before.
-	 */
+		/**
+		 *
+		 * @return true if this object has been resolved - i.e., if the method
+		 *         {@link #resolve(java.lang.Object)} has been called on this object
+		 *         before.
+		 */
 	public boolean isResolved() {
-		//TODO: replace method body with real implementation
-		throw new UnsupportedOperationException("Not Implemented Yet.");
+		return resolved.get();
 	}
 
 
-	/**
-	 * resolve this promise object - from now on, any call to the method
-	 * {@link #get()} should return the given value
-	 *
-	 * Any callbacks that were registered to be notified when this object is
-	 * resolved via the {@link #subscribe(callback)} method should
-	 * be executed before this method returns
-	 *
-     * @throws IllegalStateException
-     * 			in the case where this object is already resolved
-	 * @param value
-	 *            - the value to resolve this promise object with
-	 */
-	public void resolve(T value){
-		//TODO: replace method body with real implementation
-		throw new UnsupportedOperationException("Not Implemented Yet.");
+		/**
+		 * resolve this promise object - from now on, any call to the method
+		 * {@link #get()} should return the given value
+		 *
+		 * Any callbacks that were registered to be notified when this object is
+		 * resolved via the {@link #subscribe(callback)} method should
+		 * be executed before this method returns
+		 *
+	     * @throws IllegalStateException
+	     * 			in the case where this object is already resolved
+		 * @param value
+		 *            - the value to resolve this promise object with
+		 */
+	public synchronized void resolve(T value){
+		// Throw if the object is resolved
+		if (!resolved.compareAndSet(false, true))
+		{
+			throw new IllegalStateException();
+		}
+		
+		// Resolve the callbacks
+		result = value;
+		callback c = null;
+		while((c = callbacks.poll()) != null)
+		{
+			c.call();
+		}
 	}
 
-	/**
-	 * add a callback to be called when this object is resolved. If while
-	 * calling this method the object is already resolved - the callback should
-	 * be called immediately
-	 *
-	 * Note that in any case, the given callback should never get called more
-	 * than once, in addition, in order to avoid memory leaks - once the
-	 * callback got called, this object should not hold its reference any
-	 * longer.
-	 *
-	 * @param callback
-	 *            the callback to be called when the promise object is resolved
-	 */
-	public void subscribe(callback callback) {
-		//TODO: replace method body with real implementation
-		throw new UnsupportedOperationException("Not Implemented Yet.");
+		/**
+		 * add a callback to be called when this object is resolved. If while
+		 * calling this method the object is already resolved - the callback should
+		 * be called immediately
+		 *
+		 * Note that in any case, the given callback should never get called more
+		 * than once, in addition, in order to avoid memory leaks - once the
+		 * callback got called, this object should not hold its reference any
+		 * longer.
+		 *
+		 * @param callback
+		 *            the callback to be called when the promise object is resolved
+		 */
+	public synchronized void subscribe(callback callback) {
+		// Call the callback if the action is resolved
+		if (resolved.compareAndSet(true, true))
+		{
+			callback.call();
+		}
+		// Else add it to the queue
+		else
+		{
+			callbacks.add(callback);
+		}
 	}
 }
