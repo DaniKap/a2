@@ -119,6 +119,11 @@ public class ActorThreadPool {
 		actorTable.putIfAbsent(actorId, actorState);
 		actorQueues.putIfAbsent(actorId, new ConcurrentLinkedQueue<Action<?>>());
 		
+		if (action == null)
+		{
+			return;
+		}
+		
 		// If actor is free
 		if (actorLocks.get(actorId).compareAndSet(false, true))
 		{

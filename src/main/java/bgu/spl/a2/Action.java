@@ -18,17 +18,17 @@ import java.util.concurrent.atomic.AtomicInteger;
 public abstract class Action<R> {
 
 	
-	private Promise<R> promise = new Promise<R>();
+	protected Promise<R> promise = new Promise<R>();
 	
-	private ActorThreadPool pool;
+	protected ActorThreadPool pool;
 	
-	private String name;
+	protected String name;
 
-	private String actorId;
+	protected String actorId;
 
-	private PrivateState actorState;
+	protected PrivateState actorState;
 	
-	private callback continuation;
+	protected callback continuation;
 	
 		/**
 	     * start handling the action - note that this method is protected, a thread
@@ -108,8 +108,7 @@ public abstract class Action<R> {
 	     * @param result - the action calculated result
 	     */
     protected final void complete(R result) {
-    	/* maybe something more */
-    	
+    	this.actorState.addRecord(this.name);
        	promise.resolve(result);
     }
     

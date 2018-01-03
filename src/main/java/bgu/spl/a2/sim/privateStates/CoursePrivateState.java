@@ -43,20 +43,36 @@ public class CoursePrivateState extends PrivateState{
 		return prequisites;
 	}
 	
-	public void setPrequisites(List<String> prequisites){
+	public void setPrequisites(List<String> prequisites) {
 		this.prequisites = prequisites;
 	}
 	
-	public void setAvailableSpots(int spots){
-		availableSpots = spots;
+	public void setAvailableSpots(int spots) {
+		availableSpots = spots; 
 	}
 	
-	public boolean addStudent(String student){
+	public boolean addStudent(String student) {
 		if (availableSpots > 0)
 		{
 			availableSpots--;
 			registered++;
 			regStudents.add(student);
+			
+			return true;
+		}
+		return false;
+	}
+	
+	public boolean containsStudent(String student) {
+		return regStudents.contains(student);
+	}
+	
+	public boolean removeStudent(String student) {
+		if (containsStudent(student))
+		{
+			regStudents.remove(student);
+			registered--;
+			availableSpots++;
 			
 			return true;
 		}
