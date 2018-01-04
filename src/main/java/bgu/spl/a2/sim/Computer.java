@@ -22,7 +22,18 @@ public class Computer {
 	 * @return a signature if couersesGrades grades meet the conditions
 	 */
 	public long checkAndSign(List<String> courses, Map<String, Integer> coursesGrades){
-		//TODO: replace method body with real implementation
-		throw new UnsupportedOperationException("Not Implemented Yet.");
+
+		for (String course : courses)
+		{
+			if (!coursesGrades.containsKey(course))
+			{
+				return failSig;
+			}
+			if (coursesGrades.get(course) < 56)
+			{
+				return failSig;
+			}
+		}
+		return successSig;
 	}
 }

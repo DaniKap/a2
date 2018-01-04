@@ -7,6 +7,8 @@ package bgu.spl.a2.sim;
 import java.util.HashMap;
 import bgu.spl.a2.ActorThreadPool;
 import bgu.spl.a2.PrivateState;
+import com.google.gson.*;
+
 
 /**
  * A class describing the simulator for part 2 of the assignment
@@ -15,13 +17,22 @@ public class Simulator {
 
 	
 	public static ActorThreadPool actorThreadPool;
-	
+
+	private static int numberOfThreads(JSON);
+
+	private static Queue<Action<?>> phase(JSON, int phase);
+
+
+	public static void start()
+	{
+		Gson gson = new Gson();
+	}
+
 	/**
 	* Begin the simulation Should not be called before attachActorThreadPool()
 	*/
     public static void start(){
-		//TODO: replace method body with real implementation
-		throw new UnsupportedOperationException("Not Implemented Yet.");
+
     }
 	
 	/**
@@ -30,8 +41,7 @@ public class Simulator {
 	* @param myActorThreadPool - the ActorThreadPool which will be used by the simulator
 	*/
 	public static void attachActorThreadPool(ActorThreadPool myActorThreadPool){
-		//TODO: replace method body with real implementation
-		throw new UnsupportedOperationException("Not Implemented Yet.");
+		this.actorThreadPool = myActorThreadPool;
 	}
 	
 	/**
@@ -45,7 +55,11 @@ public class Simulator {
 	
 	
 	public static int main(String [] args){
-		//TODO: replace method body with real implementation
-		throw new UnsupportedOperationException("Not Implemented Yet.");
+		// In case we dint receive a json file
+		if (args <= 1)
+			return 1;
+
+		JSON
+
 	}
 }

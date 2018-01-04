@@ -1,4 +1,5 @@
 package bgu.spl.a2;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.Queue;
 
@@ -20,11 +21,18 @@ import java.util.Queue;
 public class Promise<T>{
 
 	
-	private T result = null;
+	private T result;
 	
 	private AtomicBoolean resolved;
 	
 	private Queue<callback> callbacks;
+
+	public Promise<T> {
+		result = null;
+		resolved = new AtomicBoolean(true);
+		callbacks = new ConcurrentLinkedQueue<>();
+	}
+
 	
 		/**
 		 *
